@@ -1,0 +1,9 @@
+google-search-results
+youtube_search
+langchain-openai
+langchain-community
+plotly
+numpy==1.26.4
+pandas
+openai
+langchain

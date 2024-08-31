@@ -1,0 +1,194 @@
+example_prompt: "User input: {input}\nCommand Response: {query}"
+use_case: |
+  The purpose of these examples are to make multi-step commands that can be used to prepare a room or area for a
+    specific task. These examples are best used for setting up a room for a specific activity, such as working from 
+    home, watching a movie, or hosting a party. The examples demonstrate how to control lights, music, and other
+    smart devices to create the perfect environment for any occasion.
+
+system_prompt: |
+  You are the most advanced AI Smart Home Specialist capable of managing, controlling, and optimizing the smart home
+  system. The system contains numerous smart lights, switches, and sensors that can be controlled and monitored
+  remotely. The system is designed to provide optimal lighting conditions based on user preferences, time of day, and
+  environmental factors. You can adjust the brightness, color, and schedule of lights to create the perfect ambiance for
+  any occasion.
+
+examples:
+  - input: I'm getting ready to work from home, can you prepare the office for me?
+    query: | 
+      
+      # Step 1: Turn on off the light automation for the office to allow for manual control
+      control_user_overrides(
+        app='lights',
+        command='turn_off',
+        area='office'
+      )
+      
+      # Step 2: Be creative and divide the office into zones to create a more dynamic lighting environment
+      command_matching_entities(
+        hacs_commands='turn_on',
+        domain='light',
+        area='office',
+        pattern="ceiling_light",
+        brightness=100,
+        xy_color=[0.5, 0.5],
+        transition=300, # Transition time in seconds
+      )
+      
+      command_matching_entities(
+          hacs_commands='turn_on',
+          domain='light',
+          area='office',
+          pattern="desk_light",
+          brightness=100,
+          xy_color=[0.25, 0.15], # Provide a purple and blue hue
+          transition=300, # Transition time in seconds
+      )
+    
+      # Step 4: Play some background music to create a productive work environment
+      
+      # Get a list of available playlists
+      search_results = search_music(name='Coding Music', media_type='playlist')
+      
+      ```python
+      # Output
+      {'artists': [], 'albums': [], 'tracks': [], 'playlists': [{'item_id': 'pl.c6450d9d225b419e8b712d0c32307af9', 'provider': 'apple_music', 'name': 'The Score', 'version': '', 'sort_name': 'score', 'uri': 'apple_music://playlist/pl.c6450d9d225b419e8b712d0c32307af9', 'external_ids': [], 'media_type': 'playlist', 'position': None, 'owner': 'Apple Music Film, TV & Stage', 'is_editable': False, 'cache_checksum': '2024-08-13T03:58:32Z'}, {'item_id': 'pl.84f88d0ece474117b4e6e5484f84c4f2', 'provider': 'apple_music', 'name': 'Background Music', 'version': '', 'sort_name': 'background music', 'uri': 'apple_music://playlist/pl.84f88d0ece474117b4e6e5484f84c4f2', 'external_ids': [], 'media_type': 'playlist', 'position': None, 'owner': 'Apple Music', 'is_editable': False, 'cache_checksum': '2024-08-13T03:58:32Z'}, {'item_id': 'pl.3912c77caa7144978a3f5fd83b0f924d', 'provider': 'apple_music', 'name': 'Deathcore Essentials', 'version': '', 'sort_name': 'deathcore essentials', 'uri': 'apple_music://playlist/pl.3912c77caa7144978a3f5fd83b0f924d', 'external_ids': [], 'media_type': 'playlist', 'position': None, 'owner': 'Apple Music Metal', 'is_editable': False, 'cache_checksum': '2024-08-08T14:31:48Z'}, {'item_id': 'pl.59f1ab681efc4377b3c0923fa9c3277f', 'provider': 'apple_music', 'name': 'Soft Classical Music for Studying and Reading', 'version': '', 'sort_name': 'soft classical music for studying and reading', 'uri': 'apple_music://playlist/pl.59f1ab681efc4377b3c0923fa9c3277f', 'external_ids': [], 'media_type': 'playlist', 'position': None, 'owner': 'Warner Classics', 'is_editable': False, 'cache_checksum': '2024-05-24T12:45:33Z'}, {'item_id': 'pl.3e5ee410774c4f16b8811a18637bfb72', 'provider': 'apple_music', 'name': '808: The Playlist', 'version': '', 'sort_name': '808: the playlist', 'uri': 'apple_music://playlist/pl.3e5ee410774c4f16b8811a18637bfb72', 'external_ids': [], 'media_type': 'playlist', 'position': None, 'owner': 'Apple Music Film, TV & Stage', 'is_editable': False, 'cache_checksum': '2016-12-06T18:59:56Z'}], 'radio': []}
+      ```
+      # Get the media_id of the playlist you want, this is always the uri 
+      
+      media_id = search_results['playlists'][0]['uri']
+      
+      
+      # Get available speakers
+      speakers = get_matching_entities(
+            pattern='speaker',
+            area='living_room'
+      )
+      
+      
+      # First set an appropriate volume level
+      command_matching_entities(
+        hacs_commands='volume_set',
+        domain='media_player',
+        pattern='speaker',
+        area='living_room',
+        volume_level=.20
+      )
+       OR    
+      # Turn up the volume
+      command_matching_entities(
+        hacs_commands='volume_up',
+        domain='media_player',
+        pattern='speaker',
+        area='living_room',
+      )
+
+      # Then play the playlist
+      play_music(list(speakers.keys()), 'playlist', media_id)
+
+      # Step 5: Flash the notification light on the user's desk to indicate that the office is ready
+      play_buzzer('office_desk_eva', 'MissionImp')
+      play_buzzer('office_desk_gerardo', 'Bond')
+      play_buzzer('office_desk_gerardo', 'Looney:d=4,o=5,b=140:32p,c6,8f6,8e6,8d6,8c6,a.,8c6,8f6,8e6,8d6,8d#6,e.6,8e6,8e6,8c6,8d6,8c6,8e6,8c6,8d6,8a,8c6,8g,8a#,8a,8f')
+  
+      # Notify the desk with the RGB light
+      # Lastly, You can notify a desk with an RGB light based on the person and room. This function will turn on the 
+      # notification light on the specified desk for the given person in the specified room.
+      
+      notify_desk('office', 'eva', color_name='red')
+      
+      # You can pass other effects brightness or colors to the notify_desk function.
+      notify_desk('office', 'eva', color_name='red', brightness_pct=100)
+      notify_desk('office', 'gerardo', effect='slow_pulse', brightness_pct=100)
+      notify_desk('office', 'eva', effect='fast_pulse', brightness_pct=100)
+      notify_desk('office', 'gerardo', effect='blink', brightness_pct=100)
+      
+      
+      # Step 6: Check if the user has coffee ready or needs a cup of coffee
+      get_matching_entities(
+      pattern_overwrite='ember_mug_gerardo',
+      )
+
+
+  - input: I'm getting ready for a coding session. Can you prepare my desk in the office?
+    query: |
+      # Step 1: Turn off the workstation automation for the office to allow for manual control
+      control_user_overrides(
+        app='workstation',
+        command='turn_off',
+        area='office'
+      )
+      
+      # Step 2: Set the lights and lamps on the desk to create a focused environment
+        command_matching_entities(
+            hacs_commands='turn_on',
+            domain='light',
+            area='office',
+            pattern="desk_light",
+            brightness=100,
+            xy_color=[0.25, 0.15], # Provide a purple and blue hue
+            transition=300, # Transition time in seconds
+        )
+      
+      # Step 4: Play some background music to create a productive work environment
+      
+        # Get a list of available playlists
+        playlists = get_available_playlists()
+        
+        # First set an appropriate volume level
+        command_matching_entities(
+          hacs_commands='volume_set',
+          domain='media_player',
+          pattern='speaker',
+          area='living_room',
+          volume_level=.20
+        )
+         OR    
+        # Turn up the volume
+        command_matching_entities(
+          hacs_commands='volume_up',
+          domain='media_player',
+          pattern='speaker',
+          area='living_room',
+        )
+  
+        # Then play the playlist
+        command_matching_entities(
+          hacs_commands='play_media', # <---- Important. Make sure the command is 'play_media'
+          domain='media_player',
+          pattern='speaker',
+          area='living_room',
+          media_content_id="FV:2/76" # <---- This is the playlist ID
+          media_content_type='favorite_item_id'
+        )
+      
+        # Set playlist to shuffle if necessary
+              command_matching_entities(
+          hacs_commands='shuffle_set',
+          domain='media_player',
+          pattern='speaker',
+          area='living_room',
+          shuffle=True
+        )
+  
+        # Step 5: Flash the notification light on the user's desk to indicate that the office is ready
+        play_buzzer('office_desk_eva', 'MissionImp')
+        play_buzzer('office_desk_gerardo', 'Bond')
+        play_buzzer('office_desk_gerardo', 'Looney:d=4,o=5,b=140:32p,c6,8f6,8e6,8d6,8c6,a.,8c6,8f6,8e6,8d6,8d#6,e.6,8e6,8e6,8c6,8d6,8c6,8e6,8c6,8d6,8a,8c6,8g,8a#,8a,8f')
+    
+        # Notify the desk with the RGB light
+        # Lastly, You can notify a desk with an RGB light based on the person and room. This function will turn on the 
+        # notification light on the specified desk for the given person in the specified room.
+        
+        notify_desk('office', 'eva', color_name='red')
+        
+        # You can pass other effects brightness or colors to the notify_desk function.
+        notify_desk('office', 'eva', color_name='red', brightness_pct=100)
+        notify_desk('office', 'gerardo', effect='slow_pulse', brightness_pct=100)
+        notify_desk('office', 'eva', effect='fast_pulse', brightness_pct=100)
+        notify_desk('office', 'gerardo', effect='blink', brightness_pct=100)
+        
+        
+      # Step 6: Check if the user has coffee ready or needs a cup of coffee
+      get_matching_entities(
+      pattern_overwrite='ember_mug_gerardo',
+      )

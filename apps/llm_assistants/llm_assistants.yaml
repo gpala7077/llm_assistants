@@ -1,0 +1,27 @@
+llm_assistants:
+  module: llm_assistants
+  class: LLMAssistants
+  use_dictionary_unpacking: True
+  plugin:
+    - HASS
+  dependencies:
+    - smarthome_global
+    - smarthome_controller
+    - smarthome_manager
+    - air_quality
+    - windows
+    - workstation
+    - apollo
+    - batteries
+
+
+  priority: 10
+  ha_url: !secret ha_url
+  ha_token: !secret appdaemon_token
+  openai_api_key: !secret openai_api_key
+  serpapi_api_key: !secret serpapi_api_key
+  home_db_url: !secret home_db_url
+  hass_db_url: !secret hass_db_url
+  maria_db_user: !secret maria_db_user
+  maria_db_password: !secret maria_db_password
+  maria_db_host: !secret maria_db_host
