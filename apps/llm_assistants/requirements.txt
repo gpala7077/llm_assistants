@@ -1,9 +1,9 @@
-google-search-results
-youtube_search
+langchain
 langchain-openai
+langchain-ollama
 langchain-community
+langgraph
 plotly
 numpy==1.26.4
 pandas
 openai
-langchain

@@ -16,10 +16,70 @@ These are the base tools for interacting with various APIs including searching t
     This will return the URL of the most relevant Python programming tutorial on YouTube.
 
 - **db_agent**: This tool employs an agent that queries a specified database and returns human understandable answers.
-    Example:
+                More importantly, your query is in the form of a literal question or request. Make sure you form all 
+                queries in the form of a question or request and keep it as detailed and as concise as possible to ensure 
+                the best results.
+    Example 1:
     ```
     data1 = db_agent(db="home-db-agent", query="What music is available?")
     data2 = db_agent(db="hass-db-agent", query="What is the average total energy usage over the last 7 days?")
+    ```
+    Example 2:
+    ```
+    data3 = db_agent(db="home-db-agent", query="How much inventory do I have?")
+    data4 = db_agent(db="home-db-agent", query="Do I have any motion sensors or occupancy sensors?")
+   ```
+
+    Example 3:
+   ```
+    data5 = db_agent(db="home-db-agent", query="What is the inventory of my smart home devices?")
+    data6 = db_agent(db="home-db-agent", query="How many Raspberry Pi's do I have?")
+   ```
+
+- **modify_home_database**: This tool executes a direct sql query to modify the home database. Mainly used to add, delete, or update the inventory table. Always do a check before making any changes to the database or table.
+    Example 1:
+    ```
+    - input: Make an update to my inventory table. Add a new item. Log, three Aqara Window/Door Sensors, they are in the 
+           Akro-Mills Drawer Cabinet.
+    
+    -- FIRST - Check if the item already exists, use db_agent to search the table
+    result = db_agent(db='home-db-agent", query="Do I have any Aqara Window/Door Sensors in my inventory?")
+    
+    -- SECOND - If the item does not exist, add it to the inventory
+    modify_home_database(sql="INSERT INTO home_db.inventory (name, category, brand, protocol, quantity, location, description) 
+           VALUES ('Aqara Window/Door Sensor', 'Sensor', 'Aqara', 'Zigbee', 3, 'Akro-Mills Drawer Cabinet', 'Smart home window and door sensors. Zigbee connection');")
+
+    -- THIRD - If the item already exists, update the quantity
+    modify_home_database(sql="UPDATE home_db.inventory SET quantity = quantity + 3 WHERE name like '%Aqara%' and name like '%Window/Door%';")
+    ```
+    Example 2:
+    ```
+    - input: I bought a new smart plug. Add it to my inventory.
+
+    -- FIRST - Check if the item already exists, use db_agent to search the table
+    result = db_agent(db='home-db-agent", query="Do I have any Smart Plugs in my inventory?")
+    
+    -- SECOND - If the item does not exist, add it to the inventory
+    modify_home_database(sql="INSERT INTO home_db.inventory (name, category, brand, protocol, quantity, location, description) 
+           VALUES ('Smart Plug', 'Plug', 'TP-Link', 'Wi-Fi', 1, 'Living Room', 'Smart plug for controlling electronic devices remotely.');")
+  
+    -- THIRD - If the item already exists, update the quantity
+    modify_home_database(sql="UPDATE home_db.inventory SET quantity = quantity + 1 WHERE name like '%Smart Plug%' and brand like '%TP-Link%';")
+  
+    ```
+    Example 3:
+    ```
+    - input: I used up one of the Aqara Window/Door Sensors. Update the quantity in the inventory.
+      query: UPDATE home_db.inventory SET quantity = quantity - 1 WHERE name like '%Aqara%' and name like '%Window/Door%';
+    
+    -- FIRST - Check if the item already exists, use db_agent to search the table
+      result = db_agent(db='home-db-agent", query="Do I have any Aqara Window/Door Sensors in my inventory?")
+  
+    -- SECOND - If the item exists, update the quantity
+    modify_home_database(sql="UPDATE home_db.inventory SET quantity = quantity - 1 WHERE name like '%Aqara%' and name like '%Window/Door%';")
+    
+    -- THIRD - If the item does not exist, inform the user
+    result = "You do not have any Aqara Window/Door Sensors in your inventory."
     ```
 
 - **log_user_preferences**: This tool logs user preferences in your vector store. It is important to log user preferences to provide a personalized experience.
@@ -222,6 +282,7 @@ own song to play through the buzzer to notify the user and to create a dynamic f
 
 
 # IMPORTANT NOTE: IF A SONG DOESN'T EXIST BELOW.  CREATE IT.
+
 Here is an example of that.
 ```python
         default_songs = {

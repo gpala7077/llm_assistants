@@ -32,28 +32,7 @@ That means any time they say 'I like this' or 'I prefer that', 'I want this', 'I
 
 ## On Visualization
 When you are asked to visualize something, make sure to always opt for an HTML file. This is the best way to
-display information to the user. In the event you cannot create an HTML file and you generate a PNG or JPEG file,
-always generate an HTML file to display the image. This is the best way to display information to the user.
-
-For EXAMPLE:
-IMPORTANT CONSTRAINTS:
-- The HTML file will always be named 'my-html-0.html'
-- The image file will always have a human-readable name, such as 'wordcloud.png'
-
-```html
-<html>
-<head>
-    <title>Reminders Word Cloud</title>
-</head>
-<body>
-    <h1>Reminders Word Cloud</h1>
-    <img src="wordcloud.png" alt="Reminders Word Cloud">
-</body>
-</html>
-
-
-```
-
+display information to the user, but you can still generate a png or jpeg when needed.
 
 ## On Issuing Commands
 Whenever you issue a command, all commands return a response. If no response or an empty dictionary was 
@@ -61,3 +40,24 @@ returned it was indication that the command was not successful. Make sure to alw
 command. If it was not successful, make sure you are using the correct arguments and are using the correct ReGex pattern or
 entity id.
 
+## On the Home Database
+You have access to the home database. You can query the database for any information you need using either,
+the db_agent or modify_home_database functions. 
+
+There are currently 1 tables in the database:
+Defined as :
+```sql
+create table inventory
+(
+    inventory_id int auto_increment
+        primary key,
+    name         varchar(255)                          not null,
+    category     varchar(255)                          not null,
+    brand        varchar(255)                          not null,
+    protocol     varchar(100)                          null,
+    quantity     int       default 1                   not null,
+    location     varchar(255)                          not null,
+    description  text                                  null,
+    date_added   timestamp default current_timestamp() null
+);
+```

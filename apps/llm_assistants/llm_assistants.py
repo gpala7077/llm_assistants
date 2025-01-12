@@ -8,7 +8,7 @@ from langchain_core.output_parsers import StrOutputParser
 from langchain_community.tools import YouTubeSearchTool
 from langchain_community.agent_toolkits import create_sql_agent
 from langchain_community.utilities.sql_database import SQLDatabase
-from serpapi import GoogleSearch
+# from serpapi import GoogleSearch
 import traceback
 import os
 from llm_classes import Assistant, FastAPIClient
@@ -21,13 +21,13 @@ from smarthome_global import *
 
 class LLMAssistants(Base):
     def initialize(self):
-        self.log("Starting LLM Assistants Services")
         self.app_name = 'LLM Assistants Services'
         self.device_types = []
         self.sensor_types = []
+        self.log_info("Starting LLM Assistants Services")
         super().initialize()  # Initialize the Base class
 
-        self.fast_api_client = FastAPIClient("http://localhost:8000")
+        # self.fast_api_client = FastAPIClient("http://localhost:8000")
         self.define_apps()
         self.define_tools()
         self.load_open_ai()
@@ -90,12 +90,14 @@ class LLMAssistants(Base):
             'search_internet': self.search_internet,
             'get_youtube_video': self.get_youtube_video,
             'db_agent': self.db_agent,
+            'modify_home_database': self.modify_home_database,
             'log_user_preferences': self.log_user_preferences,
             'run_master_on_automation': self.run_master_on_automation,
             'run_master_off_automation': self.run_master_off_automation,
             'search_music': self.apps['music'].search_music,
             'play_music': self.apps['music'].play_music,
             'get_automation_status': self.get_automation_status,
+
         }
 
     def get_automation_status(self, app=None):
@@ -103,17 +105,26 @@ class LLMAssistants(Base):
         if app:
             for entity in self.apps[app].room_automation_booleans:
                 state = self.get_state(entity, attribute='all')
-                self.log(f"{entity}: {state}")
+                self.log_info(f"{entity}: {state}")
                 status[entity] = state
         else:
             for app in self.apps:
                 for entity in self.apps[app].room_automation_booleans:
                     state = self.get_state(entity, attribute='all')
-                    self.log(f"{entity}: {state}")
+                    self.log_info(f"{entity}: {state}")
                     status[entity] = state
 
         return status
 
+    def modify_home_database(self, sql):
+        """Execute a SQL command on the Home Database"""
+        try:
+            result = self.home_database.execute_by_cursor(sql)
+            return f"SQL Command executed successfully\n{result}"
+        except Exception as e:
+            self.log_info(f"Error: {e}")
+            self.log_info(f"Traceback: {traceback.format_exc()}")
+            return f"Error: {e}"
 
     def run_master_on_automation(self, app, room, override=True, delay_execution=0, **kwargs):
         try:
@@ -128,8 +139,8 @@ class LLMAssistants(Base):
 
             return f"Master on command sent to {app}" if delay_execution == 0 else f"Master on command scheduled for {app} in {delay_execution} seconds"
         except Exception as e:
-            self.log(f"Error: {e}")
-            self.log(f"Traceback: {traceback.format_exc()}")
+            self.log_info(f"Error: {e}")
+            self.log_info(f"Traceback: {traceback.format_exc()}")
             return f"Error: {e}"
 
     def run_master_off_automation(self, app, room, override=True, delay_execution=0, **kwargs):
@@ -158,13 +169,13 @@ class LLMAssistants(Base):
         # Delete all vector stores
         vector_stores = self.client.beta.vector_stores.list()
         for store in vector_stores.data:
-            self.log(f"Deleting vector store: {store.name}")
+            self.log_info(f"Deleting vector store: {store.name}")
             self.client.beta.vector_stores.delete(store.id)
 
         # Delete all files
         files = self.client.files.list()
         for file in files.data:
-            self.log(f"Deleting file: {file}")
+            self.log_info(f"Deleting file: {file}")
             self.client.files.delete(file.id)
 
     def load_open_ai(self):
@@ -176,18 +187,23 @@ class LLMAssistants(Base):
         self.youtube = YouTubeSearchTool()
 
     def load_sql_agents(self):
-        # Load SQL Agents
-        return {'home-db-agent': create_sql_agent(
-            self.model,
-            db=SQLDatabase.from_uri(self.args.get('home_db_url')),
-            agent_type='openai-tools',
-            verbose=True
-        ), 'hass-db-agent': create_sql_agent(
-            self.model,
-            db=SQLDatabase.from_uri(self.args.get('hass_db_url')),
-            agent_type='openai-tools',
-            verbose=True
-        )}
+        try:
+            # Load SQL Agents
+            return {'home-db-agent': create_sql_agent(
+                self.model,
+                db=SQLDatabase.from_uri(self.args.get('home_db_url')),
+                agent_type='openai-tools',
+                verbose=True
+            ), 'hass-db-agent': create_sql_agent(
+                self.model,
+                db=SQLDatabase.from_uri(self.args.get('hass_db_url')),
+                agent_type='openai-tools',
+                verbose=True
+            )}
+        except Exception as e:
+            self.log_info(f"Error: {e}")
+            self.log_info(f"Traceback: {traceback.format_exc()}")
+            return {}
 
     def load_agents(self):
         self.agents = {}
@@ -207,6 +223,15 @@ class LLMAssistants(Base):
                 model=self.model,
                 dynamic_instructions=self.dynamic_instructions()
             )
+
+            # Every 15 minutes update the vector stores for each assistant
+            # This will allow the AI to provide more accurate responses
+            # Start 15 minutes after initialization
+            # self.run_every(
+            #     callback=self.assistants[assistant].load_vector_stores,
+            #     start=datetime.now(pytz.timezone('America/Chicago')) + timedelta(seconds=60 * 15),
+            #     interval=60 * 15,   # 15 minutes (60 seconds * 15)
+            # )
 
     def dynamic_instructions(self):
         regex_patterns = {
@@ -271,7 +296,7 @@ class LLMAssistants(Base):
         If you need to call multiple functions, you will call them one at a time **.
         ”
         """
-        self.log(f"""
+        self.log_info(f"""
         Dynamic Instructions:
         {regex_patterns_str}
         """)
@@ -293,8 +318,8 @@ class LLMAssistants(Base):
         self.fire_event("appdaemon_tool_response", response=response)
 
     def send_command(self, *args, **kwargs):
-        self.log(f"Received command: {args}")
-        self.log(f"Received kwargs: {kwargs}")
+        self.log_info(f"Received command: {args}")
+        self.log_info(f"Received kwargs: {kwargs}")
         request_origin = 'appdaemon_tool_request'
         data = args[1]
         llm_context = data.get('llm_context')
@@ -308,18 +333,23 @@ class LLMAssistants(Base):
         content = llm_context.get('user_prompt')
         device_id = llm_context.get('device_id')
         metadata = llm_context.get('metadata', {})
-        self.log(
+        self.log_info(
             f"""
             Received command from {user_id} on {platform} with the following metadata: {metadata}
             """
         )
         try:
-            # Enhance the user query with the best example set
-            example = self.fast_api_client.send_request_sync(
-                endpoint="generate_prompt",
-                data={"query": content}
-            )
-            self.log(f"Example content: {example}")
+            # # Enhance the user query with the best example set
+            # example = self.fast_api_client.send_request_sync(
+            #     endpoint="generate_prompt",
+            #     data={"query": content}
+            # )
+            # self.log_info(f"Example content: {example}")
+
+            # Enhance the user query by attaching a relevant vector store
+            # This will allow the AI to provide more accurate responses
+            vector_store = self.attach_vector_store(content)
+            self.log_info(f"Vector Store: {vector_store}")
             #
             command = f"""
 Receiving input from {user.title()}. Address them by their name and follow their instructions or 
@@ -335,35 +365,70 @@ It is {datetime.now(pytz.timezone('America/Chicago')).strftime('%A, %B %d, %Y')}
  {assistant_input}
 
 """
-            if example:
+            #             if example:
+            #                 command += f"""
+            #  EXAMPLES:
+            # {example}
+            # """
+            if vector_store:
                 command += f"""
- EXAMPLES:
-{example}
+   USE VECTOR STORE: {vector_store}    
 """
 
-            response = self.assistants['home-assistant'].message(thread, command)
+            response = self.assistants['home-assistant'].message(thread, command, vector_store)
 
             if request_origin == 'appdaemon_tool_request':
-                self.log(f"Sending response back to {platform} with the following response: {response}")
+                self.log_info(f"Sending response back to {platform} with the following response: {response}")
                 self.fire_event("appdaemon_tool_response", response=response)
 
             elif request_origin == 'user_input':
                 self.set_state(entity_id, state='responded', command=content, response=response)
-
+            else:
+                self.log_info(f"Unknown request origin: {request_origin}\n{response}")
             # self.manager.notify_tts(response, room_override='office', tts_override=True)
         except Exception as e:
-            self.log(f"Error: {e}")
-            self.log(f"Traceback: {traceback.format_exc()}")
+            self.log_info(f"Error: {e}")
+            self.log_info(f"Traceback: {traceback.format_exc()}")
 
             error_log = f"Error: {e}\n\nTraceback: {traceback.format_exc()}"
 
+    def attach_vector_store(self, content):
+        """Get the most relevant vector store for the user input if any."""
+
+        query = f"""
+        We have the following vector stores available for you to use:
+        {list(self.assistants['home-assistant'].stores.keys())}
+        
+        Please select return the name of the most relevant vector store for the user input:
+        
+        IMPORTANT: ONLY RETURN THE NAME OF THE VECTOR STORE. DO NOT RETURN ANYTHING ELSE.
+        
+        user_preferences: Contain all the user preferences for the home assistant for each user.
+        home_automation: Contains all the home automation rules, patterns, and usage rules
+        Clarity: Contains all the PKM files and knowledge for the user Gerardo. 
+        
+        USER INPUT:
+        {content}
+        
+        
+        EXPECTED OUTPUT:
+        
+        <vector_store_name> # i.e 'user_preferences' or 'home_automation' or 'Clarity' 
+        
+        """
+
+        response = self.message_chain.invoke(query)
+        self.log(f"Response: {response}")
+        for store in self.assistants['home-assistant'].stores:
+            if store in response:
+                return store
 
     def control_master_overrides(self, app, command='turn_on', delay_execution=0, **kwargs):
         try:
             return self.apps[app].control_master_overrides(command=command, delay_execution=delay_execution, **kwargs)
         except Exception as e:
-            self.log(f"Error: {e}")
-            self.log(f"Traceback: {traceback.format_exc()}")
+            self.log_info(f"Error: {e}")
+            self.log_info(f"Traceback: {traceback.format_exc()}")
             return f"No app {app} found."
 
     def control_user_overrides(self, app, area, command='turn_on', delay_execution=0, **kwargs):
@@ -371,24 +436,24 @@ It is {datetime.now(pytz.timezone('America/Chicago')).strftime('%A, %B %d, %Y')}
             return self.apps[app].control_user_overrides(command=command, area=area, delay_execution=delay_execution,
                                                          **kwargs)
         except Exception as e:
-            self.log(f"Error: {e}")
-            self.log(f"Traceback: {traceback.format_exc()}")
+            self.log_info(f"Error: {e}")
+            self.log_info(f"Traceback: {traceback.format_exc()}")
             return f"No app {app} found."
 
     def get_master_overrides(self, app):
         try:
             return self.apps[app].get_master_overrides()
         except Exception as e:
-            self.log(f"Error: {e}")
-            self.log(f"Traceback: {traceback.format_exc()}")
+            self.log_info(f"Error: {e}")
+            self.log_info(f"Traceback: {traceback.format_exc()}")
             return f"No app {app} found."
 
     def get_user_overrides(self, app):
         try:
             return self.apps[app].get_user_overrides()
         except Exception as e:
-            self.log(f"Error: {e}")
-            self.log(f"Traceback: {traceback.format_exc()}")
+            self.log_info(f"Error: {e}")
+            self.log_info(f"Traceback: {traceback.format_exc()}")
             return f"No app {app} found."
 
     def get_youtube_video(self, search_term, max_results=1):
@@ -396,8 +461,8 @@ It is {datetime.now(pytz.timezone('America/Chicago')).strftime('%A, %B %d, %Y')}
             response = self.youtube.run(f"{search_term},{max_results}")
             return response[0] if max_results == 1 else response
         except Exception as e:
-            self.log(f"Error: {e}")
-            self.log(f"Traceback: {traceback.format_exc()}")
+            self.log_info(f"Error: {e}")
+            self.log_info(f"Traceback: {traceback.format_exc()}")
             return f"Error: {e}"
 
     def search_internet(self, query):
@@ -408,21 +473,30 @@ It is {datetime.now(pytz.timezone('America/Chicago')).strftime('%A, %B %d, %Y')}
             )
             return search.get_dict()
         except Exception as e:
-            self.log(f"Error: {e}")
-            self.log(f"Traceback: {traceback.format_exc()}")
+            self.log_info(f"Error: {e}")
+            self.log_info(f"Traceback: {traceback.format_exc()}")
             return f"Error: {e}"
 
     def db_agent(self, db_agent, query):
         try:
-            query = self.fast_api_client.send_request_sync(
+            self.log_info(f"Received DB AGENT query: {query}", level='INFO')
+            query_updated = self.fast_api_client.send_request_sync(
                 endpoint="generate_prompt",
                 data={"query": query}
             )
+            self.log_info(f"""
+            Updated Query for DB Agent {db_agent}:
+            {query_updated}
+            """, level='INFO')
+            if not query_updated or query_updated == '':
+                query_updated = query
+            response = self.agents[db_agent].invoke(query_updated)
+            self.log_info(f"Response: {response}")
+            return response
 
-            return self.agents[db_agent].invoke(query)
         except Exception as e:
-            self.log(f"Error: {e}")
-            self.log(f"Traceback: {traceback.format_exc()}")
+            self.log_info(f"Error: {e}")
+            self.log_info(f"Traceback: {traceback.format_exc()}")
             return f"Error: {e}"
 
     #
@@ -460,6 +534,6 @@ It is {datetime.now(pytz.timezone('America/Chicago')).strftime('%A, %B %d, %Y')}
             for name, assistant in self.assistants.items():
                 assistant.load_vector_stores("vector_stores")
         except Exception as e:
-            self.log(f"Error: {e}")
-            self.log(f"Traceback: {traceback.format_exc()}")
+            self.log_info(f"Error: {e}")
+            self.log_info(f"Traceback: {traceback.format_exc()}")
             return f"Error: {e}"

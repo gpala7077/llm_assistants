@@ -527,7 +527,8 @@ def define_base_tools():
                 "description": """
                 Query a specified database.
                 This function employs an AI Agent to search and answer questions in a Database. Only two db_agent 
-                choices are available, 'home-db-agent' and 'hass-db-agent'.
+                choices are available, 'home-db-agent' and 'hass-db-agent'. Only frame your data question as a detailed
+                and concise question, For example, "How much inventory do I have?". or "Do I have any motion sensors?"
             """,
                 "parameters": {
                     "type": "object",
@@ -542,6 +543,26 @@ def define_base_tools():
                         }
                     },
                     "required": ["db_agent", "query"]
+                }
+            }
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "modify_home_database",
+                "description": """
+            Run an executable SQL query on the home database. This includes, Insert, Update, Delete, and Select queries.
+            It either returns the result of the query or the number of rows affected or an error message.
+        """,
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "sql": {
+                            "type": "string",
+                            "description": "The SQL query to execute on the home database"
+                        },
+                    },
+                    "required": ["sql"]
                 }
             }
         },
@@ -670,6 +691,11 @@ def define_base_tools():
                             "type": "string",
                             "description": "A description of the image to generate"
                         },
+                        "n": {
+                            "type": "number",
+                            "description": "The number of images to generate. Default = 1"
+                        }
+
                     },
                     "required": ["prompt"]
                 }
